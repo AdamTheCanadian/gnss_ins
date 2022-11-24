@@ -7,6 +7,18 @@ double initial_position[3] = {
     1609.34
 };
 
+double initial_velocity[3] = {
+  0,
+  0,
+  0
+};
+
+double iniital_orientation[3] = {
+    0,
+    0,
+    0
+};
+
 void DisplayConfigurationWindow() {
   if (igBegin("Configuration", NULL, ImGuiWindowFlags_None)) {
 
@@ -15,7 +27,18 @@ void DisplayConfigurationWindow() {
       igInputDouble("Longitude (deg)", &initial_position[1], -0.1, 10, "%.9f", ImGuiInputTextFlags_None);
       igInputDouble("Height    (m)", &initial_position[2], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
     }
+    if (igCollapsingHeader_TreeNodeFlags("Initial Starting Velocity", ImGuiTreeNodeFlags_None)) {
+      igInputDouble("North (m/s)", &initial_velocity[0], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("East  (m/s)", &initial_velocity[1], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("Down  (m/s)", &initial_velocity[2], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+    }
+    if (igCollapsingHeader_TreeNodeFlags("Initial Starting Orientation", ImGuiTreeNodeFlags_None)) {
+      igInputDouble("Roll  (deg)", &iniital_orientation[0], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("Pitch (deg)", &iniital_orientation[1], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("Yaw   (deg)", &iniital_orientation[2], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+    }
   }
+  igEnd();
 }
 
 int main(int argc, char *argv[]) {
