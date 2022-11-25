@@ -74,6 +74,75 @@ void DisplayConfigurationWindow() {
       if (igInputFloat3("Gyro Biases", &tmp.vec[0], "%.3f", ImGuiInputTextFlags_None)) {
         imu_error_model.gyro_biases = Vec3f_ToVec3d(&tmp);
       }
+
+      igText("Accelerometer Scale Factor and Cross Coupling");
+      for (int i = 0; i < 3; i++) {
+        Vec3d tmpd;
+        tmpd = Mat3d_GetRow(&imu_error_model.accelerometer_m, i);
+        tmp = Vec3d_ToVec3f(&tmpd);
+        /* Since the inputFloat is going to be any empty label we need to tell Imgui
+         * to treat each loop (i) as a unique ID. If we dont do this the three sliders (loop 3 times)
+         * will all be linked together */
+        int unique_id = 100;
+        igPushID_Int(unique_id + i);
+        if (igInputFloat3("##ID", &tmp.vec[0], "%.3f", ImGuiInputTextFlags_None)) {
+          tmpd = Vec3f_ToVec3d(&tmp);
+          Mat3d_SetRow(&imu_error_model.accelerometer_m, &tmpd, i);
+        }
+        igPopID();
+      }
+
+      igText("Gyro Scale Factor and Cross Coupling");
+      for (int i = 0; i < 3; i++) {
+        Vec3d tmpd;
+        tmpd = Mat3d_GetRow(&imu_error_model.gyro_m, i);
+        tmp = Vec3d_ToVec3f(&tmpd);
+        /* Since the inputFloat is going to be any empty label we need to tell Imgui
+         * to treat each loop (i) as a unique ID. If we dont do this the three sliders (loop 3 times)
+         * will all be linked together */
+        int unique_id = 200;
+        igPushID_Int(unique_id + i);
+        if (igInputFloat3("", &tmp.vec[0], "%.3f", ImGuiInputTextFlags_None)) {
+          tmpd = Vec3f_ToVec3d(&tmp);
+          Mat3d_SetRow(&imu_error_model.gyro_m, &tmpd, i);
+        }
+        igPopID();
+      }
+
+      igText("Gyro G-dependent biases");
+      for (int i = 0; i < 3; i++) {
+        Vec3d tmpd;
+        tmpd = Mat3d_GetRow(&imu_error_model.gyro_g, i);
+        tmp = Vec3d_ToVec3f(&tmpd);
+        /* Since the inputFloat is going to be any empty label we need to tell Imgui
+         * to treat each loop (i) as a unique ID. If we dont do this the three sliders (loop 3 times)
+         * will all be linked together */
+        int unique_id = 300;
+        igPushID_Int(unique_id + i);
+        if (igInputFloat3("", &tmp.vec[0], "%.3f", ImGuiInputTextFlags_None)) {
+          tmpd = Vec3f_ToVec3d(&tmp);
+          Mat3d_SetRow(&imu_error_model.gyro_g, &tmpd, i);
+        }
+        igPopID();
+      }
+
+      float tmpf = 0;
+      tmpf = (float)imu_error_model.accelerometer_noise;
+      if (igInputFloat("Accelerometer Noise", &tmpf, 1.0f, 1.0f, "%.3f", ImGuiInputTextFlags_None)) {
+        imu_error_model.accelerometer_noise = tmpf;
+      }
+      tmpf = (float)imu_error_model.gyro_noise;
+      if (igInputFloat("Gyro Noise", &tmpf, 1.0f, 1.0f, "%.3f", ImGuiInputTextFlags_None)) {
+        imu_error_model.gyro_noise = tmpf;
+      }
+      tmpf = (float)imu_error_model.accelerometer_quantization;
+      if (igInputFloat("Accelerometer Quantization", &tmpf, 0.01f, 1.0f, "%.3f", ImGuiInputTextFlags_None)) {
+        imu_error_model.accelerometer_quantization = tmpf;
+      }
+      tmpf = (float)imu_error_model.gyro_quantization;
+      if (igInputFloat("Gyro Quantization", &tmpf, 0.01f, 1.0f, "%.3f", ImGuiInputTextFlags_None)) {
+        imu_error_model.gyro_quantization = tmpf;
+      }
     }
   }
   igEnd();
