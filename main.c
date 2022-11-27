@@ -2,6 +2,8 @@
 #include "cvis/vis.h"
 #include "cmat/vec.h"
 #include "cmat/mat3d.h"
+#include "cmat/rotations.h"]
+#include "cgeodesy/geodetic_position.h"
 
 Vec3d initial_position = {
     39.750661009097016,
@@ -15,11 +17,15 @@ Vec3d initial_velocity = {
   0
 };
 
-Vec3d iniital_orientation = {
+Vec3d initial_orientation = {
     0,
     0,
     0
 };
+
+Vec3d initial_position_error = {0, 0, 0};
+Vec3d initial_velocity_error = {0, 0, 0};
+Vec3d initial_orientation_error = {0, 0, 0};
 
 typedef struct ImuErrorModel {
   Vec3d accelerometer_biases;
@@ -56,9 +62,9 @@ void DisplayConfigurationWindow() {
       igInputDouble("Down  (m/s)", &initial_velocity.vec[2], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
     }
     if (igCollapsingHeader_TreeNodeFlags("Initial Starting Orientation", ImGuiTreeNodeFlags_None)) {
-      igInputDouble("Roll  (deg)", &iniital_orientation.vec[0], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
-      igInputDouble("Pitch (deg)", &iniital_orientation.vec[1], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
-      igInputDouble("Yaw   (deg)", &iniital_orientation.vec[2], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("Roll  (deg)", &initial_orientation.vec[0], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("Pitch (deg)", &initial_orientation.vec[1], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
+      igInputDouble("Yaw   (deg)", &initial_orientation.vec[2], -0.1, 10, "%.3f", ImGuiInputTextFlags_None);
     }
 
     if (igCollapsingHeader_TreeNodeFlags("IMU Model", ImGuiTreeNodeFlags_None)) {
@@ -148,6 +154,8 @@ void DisplayConfigurationWindow() {
   igEnd();
 }
 
+static void RunSimulation();
+
 int main(int argc, char *argv[]) {
   visWindow_Initialize("GNSS INS", 800, 800);
 
@@ -174,4 +182,52 @@ void InitializeImuModel() {
   imu_error_model.gyro_noise = 0;
   imu_error_model.accelerometer_quantization = 0;
   imu_error_model.gyro_quantization = 0;
+}
+
+void RunSimulation() {
+  static const double micro_g_to_metres_per_second_squared = 9.80665e-6;
+  static const double deg_to_rad = 0.0174532925199433;
+  static const double rad_to_deg = 1.0 / deg_to_rad;
+
+  /* Create a copy of the imu model since we need to do some unit conversions before running simulator */
+  ImuErrorModel imu_model = imu_error_model;
+
+  Vec3d_Scale(&imu_model.accelerometer_biases, micro_g_to_metres_per_second_squared);
+  Vec3d_Scale(&imu_model.gyro_biases, deg_to_rad / 3600.0);
+
+  Mat3d_Scale(&imu_model.accelerometer_m, 1.0e-6);
+  Mat3d_Scale(&imu_model.gyro_m, 1.0e-6);
+  Mat3d_Scale(&imu_model.gyro_g, (deg_to_rad) / (3600 * 9.80665));
+
+  imu_model.accelerometer_noise *= micro_g_to_metres_per_second_squared;
+  imu_model.gyro_noise *= deg_to_rad / 60;
+
+  Vec3d orientation_in_radians = initial_orientation;
+  Vec3d_Scale(&orientation_in_radians, deg_to_rad);
+  Mat3d R_b_n = Rotations_EulerToR(&orientation_in_radians);
+
+  /* Initialize the nav solution using the true solution and the initialization errors */
+  PosLLH starting_position = {
+      .latitude_radians = initial_position.x * rad_to_deg,
+      .longitude_radians = initial_position.y * rad_to_deg,
+      .height_metres = initial_position.z
+  };
+  GeoVec position_error = {
+      .north_metres = initial_position_error.x,
+      .east_metres = initial_position_error.y,
+      .down_metres = initial_position_error.z
+  };
+
+  Geodesy_TranslatePosLLH(&starting_position, &position_error);
+
+  Vec3d starting_velocity = {
+      .x = initial_velocity.x + initial_velocity_error.x,
+      .y = initial_velocity.y + initial_velocity_error.y,
+      .z = initial_velocity.z + initial_velocity_error.z
+  };
+
+  Vec3d tmp = initial_orientation_error;
+  Vec3d_Scale(&tmp, -1);
+  Mat3d starting_orientation = Rotations_EulerToR(&tmp);
+
 }
